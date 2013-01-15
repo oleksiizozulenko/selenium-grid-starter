@@ -1,0 +1,108 @@
+<project name="Selenium Grid2 Distribution" basedir="." default="launch-remote-control">
+
+	<description>Selenium Grid2 Distribution</description>
+	<property file="${basedir}/project.properties" />
+	<property name="version" value="SNAPSHOT" />
+
+	<property name="webSite" value="http://images.google.com" />
+	<property name="seleniumHost" value="localhost" />
+	<property name="seleniumPort" value="4444" />
+	<property name="browser" value="firefox" />
+	<property name="hubPollerIntervalInSeconds" value="30" />
+	<property name="hubHost" value="localhost" />
+	<property name="hubUrl" value="http://${hubHost}:${seleniumPort}/" />
+	<property name="environment" value="firefox" />
+	<property name="instances" value="6" />
+
+	<property name="launch.class" value="org.openqa.grid.selenium.GridLauncher" />
+
+	<path id="remote-control.classpath">
+		<fileset dir="${basedir}/${lib.dir}">
+			<include name="*.jar" />
+		</fileset>
+		<!-- Selenium Server must be first in classpath -->
+		<fileset dir="${basedir}/${dist.dir}">
+			<include name="*.jar" />
+		</fileset>
+		<pathelement path="${java.class.path}/" />
+	</path>
+
+	<path id="hub.classpath">
+		<pathelement path="${basedir}/" />
+		<fileset dir="${basedir}/${lib.dir}">
+			<include name="selenium-*.jar" />
+		</fileset>
+		<pathelement path="${java.class.path}/" />
+	</path>
+
+	<path id="build.classpath">
+		<fileset dir="${basedir}/${lib.dir}">
+			<include name="*.jar" />
+		</fileset>
+	</path>
+
+	<target name="compile">
+		<mkdir dir="${build.classes.dir}" />
+		<javac srcdir="${src.dir}" destdir="${build.classes.dir}" deprecation="false" debug="true" debuglevel="lines" optimize="true" verbose="false">
+			<!--<compilerarg value="-Xlint"/>-->
+			<compilerarg value="-g:lines" />
+			<classpath refid="build.classpath" />
+		</javac>
+	</target>
+
+	<target name="jar" depends="compile">
+
+		<jar destfile="${dist.dir}/${jar.file}" basedir="${build.classes.dir}" excludes="*/test/**" />
+
+	</target>
+
+
+	<target name="sanity-check" description="Check that the tools are been installed and configured properly">
+		<property environment="env" />
+		<echo>${ant.version}</echo>
+		<condition property="ant-7">
+			<antversion atleast="1.7.0" />
+		</condition>
+		<fail message="You need Ant 1.7 or newer" unless="ant-7" />
+
+		<echo>Java ${ant.java.version}</echo>
+		<condition property="java-5">
+			<not>
+				<matches pattern="^1\.[0-4]" string="${ant.java.version}" />
+			</not>
+		</condition>
+		<fail message="Your must use Java 1.5 or newer. You are currrenltly using '${ant.java.version}'." unless="java-5" />
+
+		<echo />
+		<echo>********************************************************************</echo>
+		<echo>Congratulations, your setup looks good. Have fun with Selenium Grid2!</echo>
+		<echo>********************************************************************</echo>
+		<echo />
+		<echo>You can launch a hub by running 'ant launch-hub'</echo>
+		<echo>You can launch a a remote control with 'ant -Dport=4444 launch-remote-control'</echo>
+	</target>
+
+	<target name="launch-hub" description="Launch Selenium Hub" depends="sanity-check">
+		<java classname="${launch.class}" classpathref="hub.classpath" fork="true" failonerror="true">
+			<arg value="-role" />
+			<arg value="hub" />
+			<arg value="-port" />
+			<arg value="${seleniumPort}" />
+			<arg line="-nodeTimeout 3000000"/>
+		</java>
+	</target>
+
+	<target name="launch-remote-control" description="Launch A Remote Control" depends="jar">
+		<java classpathref="remote-control.classpath" classname="gp.selenium.grid2.LaunchRC" fork="true" failonerror="true">
+
+			<arg value="-hubUrl" />
+			<arg value="${hubUrl}" />
+			<arg value="-environment" />
+			<arg value="${environment}" />
+			<arg value="-instances" />
+			<arg value="${instances}" />
+
+		</java>
+	</target>
+
+</project>
